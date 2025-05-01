@@ -1,11 +1,37 @@
 #!/bin/bash
 
 # === Configuration ===
-REPO_PATH="/Users/liamramsden/Documents/GitHub/DDG_IOSApp"
+REPO_PATH="/Users/liamramsden/Documents/GitHub"
 OUTPUT_FILE="commit_log.csv"
 
 # === Script Loop ===
 while true; do
+    # === List available repositories ===
+    echo "📂 Available Repositories:"
+    REPOS=($(ls -d $REPO_PATH/*/))  # List all directories in REPO_PATH
+    if [ ${#REPOS[@]} -eq 0 ]; then
+        echo "❌ No repositories found in $REPO_PATH."
+        exit 1
+    fi
+
+    # Show the list of repositories
+    for i in "${!REPOS[@]}"; do
+        echo "$((i+1)). ${REPOS[$i]##*/}"
+    done
+
+    # === Prompt user to select a repository ===
+    read -p "🔧 Enter the number of the repository to export commits from: " REPO_CHOICE
+
+    # Validate input
+    if [[ "$REPO_CHOICE" -gt 0 && "$REPO_CHOICE" -le "${#REPOS[@]}" ]]; then
+        REPO_PATH="${REPOS[$((REPO_CHOICE-1))]}"  # Set the selected repo path
+        echo "🔄 You selected repository: ${REPO_PATH##*/}"
+    else
+        echo "⚠️ Invalid selection. Please choose a valid number."
+        continue
+    fi
+
+    # === Change to the selected repo directory ===
     cd "$REPO_PATH" || { echo "❌ Repo not found at $REPO_PATH"; exit 1; }
 
     # === Show available branches ===

@@ -1,11 +1,37 @@
 #!/bin/bash
 
 # === Configuration ===
-REPO_PATH="/Users/liamramsden/Documents/GitHub/DDG_IOSApp"
+REPO_PATH="/Users/liamramsden/Documents/GitHub"
 OUTPUT_FILE="commit_log.csv"
 
 # === Script Loop ===
 while true; do
+    # === List available repositories ===
+    echo "📂 Available Repositories:"
+    REPOS=($(ls -d $REPO_PATH/*/))  # List all directories in REPO_PATH
+    if [ ${#REPOS[@]} -eq 0 ]; then
+        echo "❌ No repositories found in $REPO_PATH."
+        exit 1
+    fi
+
+    # Show the list of repositories
+    for i in "${!REPOS[@]}"; do
+        echo "$((i+1)). ${REPOS[$i]##*/}"
+    done
+
+    # === Prompt user to select a repository ===
+    read -p "🔧 Enter the number of the repository to export commits from: " REPO_CHOICE
+
+    # Validate input
+    if [[ "$REPO_CHOICE" -gt 0 && "$REPO_CHOICE" -le "${#REPOS[@]}" ]]; then
+        REPO_PATH="${REPOS[$((REPO_CHOICE-1))]}"  # Set the selected repo path
+        echo "🔄 You selected repository: ${REPO_PATH##*/}"
+    else
+        echo "⚠️ Invalid selection. Please choose a valid number."
+        continue
+    fi
+
+    # === Change to the selected repo directory ===
     cd "$REPO_PATH" || { echo "❌ Repo not found at $REPO_PATH"; exit 1; }
 
     # === Show available branches ===
@@ -21,53 +47,9 @@ while true; do
     echo "🔄 Switching to branch '$BRANCH_NAME'..."
     git checkout "$BRANCH_NAME" || { echo "❌ Failed to checkout branch '$BRANCH_NAME'"; continue; }
 
-    # === Prompt user for author filter ===
-    read -p "🔍 Enter the author's name to filter by (press Enter to skip): " AUTHOR_FILTER
-
-    # === Prompt user for date filters ===
-    read -p "📅 Enter the 'from' date (YYYY-MM-DD) or press Enter to skip: " FROM_DATE
-    read -p "📅 Enter the 'to' date (YYYY-MM-DD) or press Enter to skip: " TO_DATE
-
-    # === Build the git log command with optional filters ===
-    AUTHOR_OPTION=""
-    DATE_OPTION=""
-    
-    # Add author filter if provided
-    if [[ -n "$AUTHOR_FILTER" ]]; then
-        AUTHOR_OPTION="--author=\"$AUTHOR_FILTER\""
-    fi
-
-    # Add date filters if provided
-    if [[ -n "$FROM_DATE" && -n "$TO_DATE" ]]; then
-        DATE_OPTION="--since=\"$FROM_DATE\" --until=\"$TO_DATE\""
-    elif [[ -n "$FROM_DATE" ]]; then
-        DATE_OPTION="--since=\"$FROM_DATE\""
-    elif [[ -n "$TO_DATE" ]]; then
-        DATE_OPTION="--until=\"$TO_DATE\""
-    fi
-
-    # === Export commits with filters if provided ===
+    # === Export commits ===
     echo "📤 Exporting commit log to '$OUTPUT_FILE'..."
-    git log $AUTHOR_OPTION $DATE_OPTION --pretty=format:'%H|%an|%ad|%s' --date=iso | \
-    awk -F'|' '{
-    # Remove leading/trailing spaces from date field
-    gsub(/^ +| +$/, "", $3);
-    
-    # Split the date-time string into date, time, and timezone
-    split($3, datetimeParts, " ");
-    
-    # Split the date part (YYYY-MM-DD) into separate components
-    split(datetimeParts[1], dateParts, "-");
-    
-    # Convert to dd-MM-yyyy (UK format)
-    formattedDate = dateParts[3] "-" dateParts[2] "-" dateParts[1];
-    
-    # Extract the time part (HH:MM:SS)
-    time = datetimeParts[2];
-    
-    # Print the CSV line with separate Date and Time columns, with commas
-    printf "\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n", $1, $2, formattedDate, time, $4
-    }' > "$OUTPUT_FILE"
+    git log --pretty=format:'"%H","%an","%ad","%s"' --date=iso > "$OUTPUT_FILE"
 
     # === Open the file ===
     echo "📂 Opening file..."
