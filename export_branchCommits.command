@@ -23,7 +23,14 @@ while true; do
 
     # === Export commits ===
     echo "📤 Exporting commit log to '$OUTPUT_FILE'..."
-    git log --pretty=format:'"%H","%an","%ad","%s"' --date=iso > "$OUTPUT_FILE"
+    #git log --pretty=format:'"%H","%an","%ad","%s"' --date=iso > "$OUTPUT_FILE"
+   git log --pretty=format:'%H|%an|%ad|%s' --date=iso | \
+    awk -F'|' '{
+    split($3, datetime, " ");
+    split(datetime[1], dateParts, "-");
+    formattedDate = dateParts[3] "-" dateParts[2] "-" dateParts[1];
+    printf "\"%s\",\"%s\",\"%s %s %s\",\"%s\"\n", $1, $2, formattedDate, datetime[2], datetime[3], $4
+    }' > "$OUTPUT_FILE"
 
     # === Open the file ===
     echo "📂 Opening file..."
