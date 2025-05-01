@@ -21,25 +21,37 @@ while true; do
     echo "🔄 Switching to branch '$BRANCH_NAME'..."
     git checkout "$BRANCH_NAME" || { echo "❌ Failed to checkout branch '$BRANCH_NAME'"; continue; }
 
-    # === Export commits ===
+    # === Prompt user for author filter ===
+    read -p "🔍 Enter the author's name to filter by (press Enter to skip): " AUTHOR_FILTER
+
+    # === Build the git log command with optional author filter ===
+    if [[ -n "$AUTHOR_FILTER" ]]; then
+        AUTHOR_OPTION="--author=\"$AUTHOR_FILTER\""
+    else
+        AUTHOR_OPTION=""
+    fi
+
+    # === Export commits with author filter if provided ===
     echo "📤 Exporting commit log to '$OUTPUT_FILE'..."
-    git log --pretty=format:'%H|%an|%ad|%s' --date=iso | \
+    git log $AUTHOR_OPTION --pretty=format:'%H|%an|%ad|%s' --date=iso | \
     awk -F'|' '{
     # Remove leading/trailing spaces from date field
     gsub(/^ +| +$/, "", $3);
     
     # Split the date-time string into date, time, and timezone
     split($3, datetimeParts, " ");
-    split(datetimeParts[1], dateParts, "-");  # YYYY-MM-DD → {2025, 04, 28}
     
-    # Rearranged date: dd-MM-yyyy (UK format)
+    # Split the date part (YYYY-MM-DD) into separate components
+    split(datetimeParts[1], dateParts, "-");
+    
+    # Convert to dd-MM-yyyy (UK format)
     formattedDate = dateParts[3] "-" dateParts[2] "-" dateParts[1];
     
-    # Split the time and timezone to make them separate columns
-    split(datetimeParts[2], timeParts, "+");  # Time is "HH:MM:SS" and "+TZ"
+    # Extract the time part (HH:MM:SS)
+    time = datetimeParts[2];
     
-    # Print CSV line with separate Date and Time+TZ columns
-    printf "\"%s\",\"%s\",\"%s\",\"%s\",\"%s %s\"\n", $1, $2, formattedDate, timeParts[1], "+" timeParts[2], $4
+    # Print the CSV line with separate Date and Time columns, with commas
+    printf "\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n", $1, $2, formattedDate, time, $4
     }' > "$OUTPUT_FILE"
 
     # === Open the file ===
