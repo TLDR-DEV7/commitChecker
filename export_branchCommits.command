@@ -23,13 +23,23 @@ while true; do
 
     # === Export commits ===
     echo "📤 Exporting commit log to '$OUTPUT_FILE'..."
-    #git log --pretty=format:'"%H","%an","%ad","%s"' --date=iso > "$OUTPUT_FILE"
-   git log --pretty=format:'%H|%an|%ad|%s' --date=iso | \
+    git log --pretty=format:'%H|%an|%ad|%s' --date=iso | \
     awk -F'|' '{
-    split($3, datetime, " ");
-    split(datetime[1], dateParts, "-");
+    # Remove leading/trailing spaces from date field
+    gsub(/^ +| +$/, "", $3);
+    
+    # Split the date-time string into date, time, and timezone
+    split($3, datetimeParts, " ");
+    split(datetimeParts[1], dateParts, "-");  # YYYY-MM-DD → {2025, 04, 28}
+    
+    # Rearranged date: dd-MM-yyyy (UK format)
     formattedDate = dateParts[3] "-" dateParts[2] "-" dateParts[1];
-    printf "\"%s\",\"%s\",\"%s %s %s\",\"%s\"\n", $1, $2, formattedDate, datetime[2], datetime[3], $4
+    
+    # Split the time and timezone to make them separate columns
+    split(datetimeParts[2], timeParts, "+");  # Time is "HH:MM:SS" and "+TZ"
+    
+    # Print CSV line with separate Date and Time+TZ columns
+    printf "\"%s\",\"%s\",\"%s\",\"%s\",\"%s %s\"\n", $1, $2, formattedDate, timeParts[1], "+" timeParts[2], $4
     }' > "$OUTPUT_FILE"
 
     # === Open the file ===
