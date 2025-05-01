@@ -24,16 +24,31 @@ while true; do
     # === Prompt user for author filter ===
     read -p "🔍 Enter the author's name to filter by (press Enter to skip): " AUTHOR_FILTER
 
-    # === Build the git log command with optional author filter ===
+    # === Prompt user for date filters ===
+    read -p "📅 Enter the 'from' date (YYYY-MM-DD) or press Enter to skip: " FROM_DATE
+    read -p "📅 Enter the 'to' date (YYYY-MM-DD) or press Enter to skip: " TO_DATE
+
+    # === Build the git log command with optional filters ===
+    AUTHOR_OPTION=""
+    DATE_OPTION=""
+    
+    # Add author filter if provided
     if [[ -n "$AUTHOR_FILTER" ]]; then
         AUTHOR_OPTION="--author=\"$AUTHOR_FILTER\""
-    else
-        AUTHOR_OPTION=""
     fi
 
-    # === Export commits with author filter if provided ===
+    # Add date filters if provided
+    if [[ -n "$FROM_DATE" && -n "$TO_DATE" ]]; then
+        DATE_OPTION="--since=\"$FROM_DATE\" --until=\"$TO_DATE\""
+    elif [[ -n "$FROM_DATE" ]]; then
+        DATE_OPTION="--since=\"$FROM_DATE\""
+    elif [[ -n "$TO_DATE" ]]; then
+        DATE_OPTION="--until=\"$TO_DATE\""
+    fi
+
+    # === Export commits with filters if provided ===
     echo "📤 Exporting commit log to '$OUTPUT_FILE'..."
-    git log $AUTHOR_OPTION --pretty=format:'%H|%an|%ad|%s' --date=iso | \
+    git log $AUTHOR_OPTION $DATE_OPTION --pretty=format:'%H|%an|%ad|%s' --date=iso | \
     awk -F'|' '{
     # Remove leading/trailing spaces from date field
     gsub(/^ +| +$/, "", $3);
