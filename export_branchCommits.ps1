@@ -1,5 +1,6 @@
 # === Configuration ===
-$GitHubPath = "C:\Users\liamramsden\Documents\GitHub"
+# $GitHubPath = "C:\Users\Liam.Ramsden\Documents\GitHub"
+$GitHubPath = "$env:USERPROFILE\Documents\GitHub"
 $OutputFile = "commit_log.csv"
 
 function Get-Repositories {
